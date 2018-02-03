@@ -5,7 +5,7 @@ package main
 import "syscall"
 
 // DefaultMountFlags is a default set of readonly mount flags.
-const DefaultMountFlags = syscall.MS_RDONLY | syscall.MS_NOATIME | syscall.MS_NODIRATIME | syscall.MS_NOEXEC
+const DefaultMountFlags = syscall.MS_BIND | syscall.MS_RDONLY | syscall.MS_NOATIME | syscall.MS_NODIRATIME | syscall.MS_NOEXEC
 
 // DefaultUnmountFlags is a default set of forced unmount flags.
 const DefaultUnmountFlags = syscall.MNT_FORCE
