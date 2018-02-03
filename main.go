@@ -1,22 +1,58 @@
 package main
 
 import (
+	"context"
+	"flag"
+	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"syscall"
+	"time"
+
+	"github.com/gentlemanautomaton/signaler"
 )
 
 func main() {
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM)
-	go func(s chan os.Signal) {
-		<-s
-		os.Exit(0)
-	}(s)
+	// Capture shutdown signals
+	shutdown := signaler.New().Capture(os.Interrupt, syscall.SIGTERM)
 
-	prefix := os.Getenv("URLPREFIX")
-	http.ListenAndServe("0.0.0.0:80", http.StripPrefix(prefix, http.FileServer(filesOnlyFilesystem{http.Dir("/mnt/smb")})))
+	// Parse arguments and environment
+	c := DefaultConfig
+	c.ParseEnv()
+	if len(os.Args) > 0 {
+		c.ParseArgs(os.Args[1:], flag.ExitOnError)
+	}
+
+	// Prepare an http server
+	s := &http.Server{
+		Addr:    "0.0.0.0:80",
+		Handler: http.StripPrefix(c.URLPrefix, http.FileServer(filesOnlyFilesystem{http.Dir(c.Target)})),
+	}
+
+	// Create the mount
+	if err := mount(c.Source, c.Target, "cifs", c.MountFlags(), c.MountOptions()); err != nil {
+		fmt.Printf("Unable to mount \"%s\" at \"%s\": %v\n", c.Source, c.Target, err)
+		os.Exit(1)
+	}
+
+	// Tell the server to stop gracefully when a shutdown signal is received
+	stopped := shutdown.Then(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		defer cancel()
+		s.Shutdown(ctx)
+	})
+
+	// Unmount once the server has been shutdown
+	unmounted := stopped.Then(func() {
+		unmount(c.Target, DefaultUnmountFlags)
+	})
+
+	// Always cleanup and wait until the shutdown has completed
+	defer unmounted.Wait()
+	defer shutdown.Trigger()
+
+	// Run the server and print the final result
+	fmt.Println(s.ListenAndServe())
 }
 
 type filesOnlyFilesystem struct {

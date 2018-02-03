@@ -1,20 +1,37 @@
-FROM golang:latest
-MAINTAINER dusty.wilson@scjalliance.com
+# --------
+# Stage 1: Build
+# -------
+FROM golang:alpine as builder
 
-RUN apt-get update \
-    && apt-get install -y \
-       cifs-utils \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk --no-cache add git
 
-EXPOSE 80
-VOLUME /mnt/smb
+WORKDIR /go/src/github.com/scjalliance/smb-http-proxy
+COPY . .
 
-RUN mkdir -p /go/src/app
-WORKDIR /go/src/app
-COPY . /go/src/app
-RUN chmod 0755 /go/src/app/run.sh
+# Disable CGO to make sure we don't rely on libc
+ENV CGO_ENABLED=0
+
+# Exclude debugging symbols and set the netgo tag for Go-based DNS resolution
+ENV BUILD_FLAGS="-v -a -ldflags '-d -s -w' -tags netgo"
+
 RUN go-wrapper download
 RUN go-wrapper install
 
-CMD ["/go/src/app/run.sh"]
+# --------
+# Stage 2: Release
+# --------
+FROM debian
+
+VOLUME /mnt/smb
+EXPOSE 80
+
+#RUN apt-get update \
+#    && apt-get install -y \
+#       cifs-utils \
+#    && apt-get clean \
+#    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /go/bin/smb-http-proxy /
+
+WORKDIR /data
+CMD ["/smb-http-proxy"]
