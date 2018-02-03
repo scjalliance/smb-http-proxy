@@ -23,7 +23,7 @@ type Config struct {
 // DefaultConfig holds the default configuration values.
 var DefaultConfig = Config{
 	Target:  "/mnt/smb",
-	Options: "ro,uid=0,gid=0,forceuid,forcegid,vers=2.1,sec=ntlm",
+	Options: "uid=0,gid=0,forceuid,forcegid,vers=2.1,sec=ntlm",
 }
 
 // ParseEnv will parse environment variables and apply them to the
@@ -71,7 +71,7 @@ func (c *Config) MountFlags() uintptr {
 func (c *Config) MountOptions() string {
 	var options []string
 	if c.Username != "" {
-		options = append(options, c.option("username", c.Username))
+		options = append(options, c.option("user", c.Username))
 	}
 	if c.Password != "" {
 		options = append(options, c.option("password", c.Password))
