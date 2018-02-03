@@ -11,7 +11,7 @@ const DefaultMountFlags = syscall.MS_RDONLY | syscall.MS_NOATIME | syscall.MS_NO
 const DefaultUnmountFlags = syscall.MNT_FORCE
 
 func mount(source string, target string, fstype string, flags uintptr, data string) error {
-	return syscall.Mount(c.Source, c.Target, "cifs", c.MountFlags(), c.MountOptions())
+	return syscall.Mount(source, target, fstype, flags, data)
 }
 
 func unmount(target string, flags int) (err error) {
