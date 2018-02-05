@@ -23,7 +23,7 @@ type Config struct {
 // DefaultConfig holds the default configuration values.
 var DefaultConfig = Config{
 	Target:  "/mnt/smb",
-	Options: "uid=0,gid=0,forceuid,forcegid,vers=2.1,sec=ntlm",
+	Options: "uid=0,gid=0,forceuid,forcegid,vers=2.1",
 }
 
 // ParseEnv will parse environment variables and apply them to the
