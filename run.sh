@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 if [ -z "$USERNAME" -o -z "$PASSWORD" -o -z "$UNCPATH" ]; then
   echo "This requires that you provide USERNAME, PASSWORD, and UNCPATH environment variables."
