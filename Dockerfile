@@ -25,13 +25,14 @@ FROM debian
 VOLUME /mnt/smb
 EXPOSE 80
 
-#RUN apt-get update \
-#    && apt-get install -y \
-#       cifs-utils \
-#    && apt-get clean \
-#    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y \
+       cifs-utils \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /go/bin/smb-http-proxy /
+COPY run.sh /
 
-WORKDIR /data
-CMD ["/smb-http-proxy"]
+#CMD ["/smb-http-proxy"]
+CMD ["/run.sh"]
