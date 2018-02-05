@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 if [ -z "$USERNAME" -o -z "$PASSWORD" -o -z "$UNCPATH" ]; then
   echo "This requires that you provide USERNAME, PASSWORD, and UNCPATH environment variables."
@@ -19,8 +19,9 @@ if [ ! -z "$PASSWORD" ]; then
   PASSWORD="password=$PASSWORD,"
 fi
 
-mount -t cifs "$UNCPATH" /mnt/smb -o ro,${USERNAME}${PASSWORD}${DOMAIN}uid=0,gid=0,forceuid,forcegid,vers=2.1,sec=ntlm || exit 1
+#mount -t cifs -o ro,${USERNAME}${PASSWORD}${DOMAIN}uid=0,gid=0,forceuid,forcegid,vers=2.1,sec=ntlm "$UNCPATH" /mnt/smb || exit 1
+mount -t cifs -o ro,${USERNAME}${PASSWORD}${DOMAIN}uid=0,gid=0,forceuid,forcegid,vers=2.1 "$UNCPATH" /mnt/smb || exit 1
 
-/go/bin/app
+/smb-http-proxy
 
 umount /mnt/smb
