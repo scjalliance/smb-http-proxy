@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/alecthomas/kong"
 	"github.com/gentlemanautomaton/signaler"
 )
 
@@ -17,22 +18,28 @@ func main() {
 	shutdown := signaler.New().Capture(os.Interrupt, syscall.SIGTERM)
 
 	// Parse arguments and environment
-	c := DefaultConfig
-	c.ParseEnv()
-	if len(os.Args) > 0 {
-		c.ParseArgs(os.Args[1:], flag.ExitOnError)
+	var c Config
+	kong.Parse(&c,
+		kong.Description("Serves files from an SMB share over HTTP."),
+		kong.UsageOnError())
+
+	// Announce startup
+	fmt.Printf("The process has started with this configuration:\n  %s\n", strings.Join(strings.Split(c.Summary(), "\n"), "\n  "))
+
+	// Connect to the remote file system
+	fs := NewFS(c)
+	if err := fs.Connect(shutdown.Context()); err != nil {
+		fmt.Printf("Failed to connect to \"%s\": %v\n", c.Source, err)
+		os.Exit(1)
 	}
+
+	// Disconnect from the remote file system when done
+	defer fs.Close()
 
 	// Prepare an http server
 	s := &http.Server{
 		Addr:    "0.0.0.0:80",
-		Handler: http.StripPrefix(c.URLPrefix, http.FileServer(filesOnlyFilesystem{http.Dir(c.Target)})),
-	}
-
-	// Create the mount
-	if err := mount(c.Source, c.Target, "cifs", c.MountFlags(), c.MountOptions()); err != nil {
-		fmt.Printf("Unable to mount \"%s\" at \"%s\": %v\n", c.Source, c.Target, err)
-		os.Exit(1)
+		Handler: http.StripPrefix(c.URLPrefix, http.FileServer(filesOnlyFilesystem{fs})),
 	}
 
 	// Tell the server to stop gracefully when a shutdown signal is received
@@ -42,13 +49,8 @@ func main() {
 		s.Shutdown(ctx)
 	})
 
-	// Unmount once the server has been shutdown
-	unmounted := stopped.Then(func() {
-		unmount(c.Target, DefaultUnmountFlags)
-	})
-
 	// Always cleanup and wait until the shutdown has completed
-	defer unmounted.Wait()
+	defer stopped.Wait()
 	defer shutdown.Trigger()
 
 	// Run the server and print the final result
