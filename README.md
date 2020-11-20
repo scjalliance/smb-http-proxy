@@ -16,5 +16,5 @@ Flags:
 ```
 
 ```
-docker run --name smb_something --restart=unless-stopped -p 0.0.0.0:5432:80 --rm -it -e "URL_PREFIX=/some/url/prefix/" -e "SOURCE=//flange.example.com/best-laid-plans/" -e "USERNAME=somebody" -e "PASSWORD=secreteating" -e "DOMAIN=yourdomain" scjalliance/smb-http-proxy
+docker run --name smb_something --restart=unless-stopped -p 0.0.0.0:5432:80 --rm -it -e "URL_PREFIX=/some/url/prefix/" -e "SOURCE=//flange.example.com/best-laid-plans/" -e "USER=somebody" -e "PASSWORD=secreteating" -e "DOMAIN=yourdomain" scjalliance/smb-http-proxy
 ```
